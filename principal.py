@@ -14,6 +14,10 @@ from progress.bar import IncrementalBar
 class scraping():
     """ classe pour le scrapping du site BooksToScrap """
     def __init__(self):
+        # nom de l'image du livre qui est sauvegardé
+        self.nomImage=''
+        # sous-dossier de stockage d'images de livres
+        self.dossierImages='ImagesLivres'
         # dossier de stockage des données générées par le programme
         self.dossierScrap='ResultatsScrap'
         #variable qui stocke les urls de chaque catégorie à scraper dans le site
@@ -78,7 +82,7 @@ class scraping():
             try:
                 if (elem['class'] == ['item', 'active']):
                     image=elem
-                    self.livre['image_url']=self.urlBase[:-10]+elem.find('img')['src'][9:]
+                    self.livre['image_url']=self.urlBase[:-10]+elem.find('img')['src'][6:]
             except:
                 pass
 
@@ -121,7 +125,7 @@ class scraping():
             f.write('\n')
             f.write(values)
 
-    def scrapUnLivre(self,urlLivre,csv=False):
+    def scrapUnLivre(self,urlLivre,csv=False,image=False):
         """ scrap les paramètres pour un livre donné
          si csv == True génèration d'un fichier CSV pour ce livre uniquement"""
         self.creerObjetSoup(urlLivre)
@@ -134,6 +138,9 @@ class scraping():
         # print ('unLivre : ',self.livre)
         if csv:
             self.creeCSVunLivre()
+        if image:
+            # nomImage=self.livre['title'].replace(' ','_')
+            self.sauvegardeImageUnLivre(self.livre)
 
     def recupereUrlsUnePageCategorie(self):
         """ recupere toutes les urls de livre pour une seule page d'une catégorie """
@@ -169,17 +176,24 @@ class scraping():
     def scrapUneCategorie(self,url,nomCSV='None'):
         """ scrap une catégorie entière de livres et la sauvegarde
          dans un CSV  """
+        # Prépare le scraping
         self.recupereInfosUneCategorie(urlCategorie=url)
         self.initialiseLivres()
+
+        # Optimise l'affichage pour l'utilisateur
         print('Il y a {} page(s) dans cette catégorie'.format(len(self.categorie['urlsLivres'])))
         self.barre=IncrementalBar('pages scrapées : ',max = len(self.categorie['urlsLivres']))
-        for index,elem in enumerate(self.categorie['urlsLivres']): # recupere toutes les infos de livre de chaque url
+
+        # recupere toutes les infos de livre de chaque url
+        for index,elem in enumerate(self.categorie['urlsLivres']):
                 for el in elem:
                     self.initialiseLivre()
                     self.scrapUnLivre(el)
                     self.livres.append(self.livre)
                 self.barre.next()
         self.barre.finish()
+
+        #Sauvegarde CSVs et fichiers images
         if (nomCSV != 'None'):
             self.fichierCSV=nomCSV
         courant=os.path.abspath(os.path.curdir)
@@ -187,6 +201,14 @@ class scraping():
             os.mkdir(self.dossierScrap)
         os.chdir(self.dossierScrap)
         self.creeCSVLivresUneCategorie()
+        if (not os.path.isdir(self.dossierImages)):
+            os.mkdir(self.dossierImages)
+        os.chdir(self.dossierImages)
+        if (nomCSV != 'None'):
+            if (not os.path.isdir(nomCSV[:-4])):
+                os.mkdir(nomCSV[:-4])
+            os.chdir(nomCSV[:-4])
+        self.sauvegardeImageLivresCategorie()
         try:
             os.chdir(courant)
         except:
@@ -217,22 +239,25 @@ class scraping():
         """ scrap tout le site internet et génère un csv par catégorie de livres
          ces csv sont stockés dans un dossier"""
 
-        self.infosToutesCategories()
+        self.recupereInfosPourToutesCategories()
         print ('Il y a {} categories'.format(len(self.urlsCategories)))
         for index,elem in enumerate(self.urlsCategories):
             print ('Catégorie {}/{} : {}'.format(index+1,len(self.urlsCategories),elem['csv'][:-4]))
             self.scrapUneCategorie(url=elem['url'],nomCSV=elem['csv'])
-        print ('\nSite Web scrapé intégralement\n')
+        print ('\nSite Web scrapé intégralement dans {}'.format(self.dossierScrap))
 
-    def trouverNomCategorie(self,url): # OK
+    def trouverNomCategorie(self,url):
         csv = url[::-1]
         csv = csv[csv.find('/') + 1:]
         csv = csv[:csv.find('/')]
         csv = csv[csv.find('_')+1:]
         csv=csv[::-1]
-        return( csv)
+        return(csv)
 
-    def infosToutesCategories(self): # erreur URL
+    def recupereInfosPourToutesCategories(self):
+        """ recupere les urls de chaque categorie du site et les stocke dans
+         self.urlsCategories"""
+
         self.creerObjetSoup(self.urlBase)
         uls=self.soup.findAll('ul')
         # print (len(uls))
@@ -240,7 +265,6 @@ class scraping():
             try:
                 if (ul['class'] == ['nav', 'nav-list']):
                     lis=ul.find('ul').findAll('li')
-                    # print (len(lis))
                     break
             except:
                 pass
@@ -251,7 +275,56 @@ class scraping():
                 self.urlsCategories.append({'url':url,'csv':csv})
             except:
                 pass
-        # print (self.urlsCategories)
+
+    def sauvegardeImageUnLivre(self,livre):
+        """ enregistre l'image du livre depuis son url dans self.livre
+        dans le dossier self.dossierImages pour les images de livre"""
+
+        reponse=requests.get(livre['image_url'])
+        self.nomImage=livre['title'].replace('/','_')[:30]+'.png'
+        with open(self.nomImage,'wb') as f:
+            f.write(reponse.content)
+
+    def sauvegardeImageLivresCategorie(self):
+        """ sauvegarde l'image de chaque livre d'une catégorie depuis les urls
+        qui sont dans self.livres"""
+        for elem in self.livres:
+            self.sauvegardeImageUnLivre(elem)
+
+    def choisirLaCibleDuScraping(self):
+        """ Cette fonction sert à laisser le choix à l'utilisateur de ce qu'il veut scrapper
+         sans avoir à toucher au code du programme, il peut scrapper:
+         - un livre seul
+         - une catégorie entière
+         - tout le site"""
+        choix=[(1,self.scrapUnLivre),(2,self.scrapUneCategorie),(3,self.scrapSiteInternet)]
+        print ('Choisir parmi les 3 options de scraping:\n1- scraper un seul livre\n'
+               '2- scraper une seule catégorie\n3- scraper tout le site')
+        entree=input('Taper 1, 2 ou 3 puis <Entree>: ')
+        try:
+            entree=int(entree)
+        except:
+            print("votre choix n'est pas un entier")
+            exit()
+        for elem in choix:
+            if (int(entree) ==elem[0]):
+                if (int(entree)==3):
+                    elem[1]()
+                    exit()
+                elif (int(entree)==1):
+                    url=input("Entrer l'url à utiliser :\n")
+                    elem[1](urlLivre=url,csv=True,image=True)
+                    print ("le csv {} et l'image {} se trouvent dans le repertoire du programme".format(self.fichierCSV,self.nomImage))
+                    exit()
+                elif (int(entree)==2):
+                    url = input("Entrer l'url à utiliser :\n")
+                    elem[1](url)
+                    print ('les images se trouvent dans {}'.format('./'+self.dossierScrap+'/'+self.dossierImages))
+                    exit()
+                else:
+                    print('Votre choix doit être compris entre 1 et 3')
+                    # print (entree)
+                    exit()
 
 if __name__ == '__main__':
-    scraping().scrapSiteInternet()
+    scraping().choisirLaCibleDuScraping()
