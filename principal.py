@@ -8,19 +8,29 @@
 import requests
 from bs4 import BeautifulSoup
 import os
-import time as t
+from progress.bar import IncrementalBar
 
 
 class scraping():
     """ classe pour le scrapping du site BooksToScrap """
     def __init__(self):
+        # dossier de stockage des données générées par le programme
+        self.dossierScrap='ResultatsScrap'
+        #variable qui stocke les urls de chaque catégorie à scraper dans le site
         self.urlsCategories=[]
+        #variable qui stocke pour une catégorie les paramètres nécessaires au scraping
         self.categorie={'nbLivres':'','nbPages':'','urlsLivres':[],'urlsPages':[]}
+        # variable de nom de CSV sauvegardé (valeur par défaut donnée)
         self.fichierCSV='resultats.csv'
+        # url de base du site à scrapper
         self.urlBase='http://books.toscrape.com/index.html'
+        # url de base pour scrapper une catégorie
         self.urlCatalogue='http://books.toscrape.com/catalogue/'
-        self.urlCourante='http://books.toscrape.com/catalogue/category/books/fiction_10/page-1.html'
+        # url actuellement utilisée par le programme
+        self.urlCourante=''
+        # stocke les variables self.livre pour toute une catégorie
         self.livres=[]
+        # stocke tous les paramètres à scrapper pour un livre
         self.livre={'product_page_url':'','upc':'','title':'','price_including_tax':'',
                     'price_excluding_tax':'','number_available':'','product_description':'',
                     'category':'','review_rating':'','image_url':''}
@@ -30,16 +40,24 @@ class scraping():
                     'price_excluding_tax':'','number_available':'','product_description':'',
                     'category':'','review_rating':'','image_url':''}
 
-    def creerObjetSoup(self,url): # OK
+    def initialiseCategorie(self):
+        """ remet les valeurs par defaut pour self.categorie """
+        self.categorie={'nbLivres':'','nbPages':'','urlsLivres':[],'urlsPages':[]}
+
+    def initialiseLivres(self):
+        """ remet la liste self.livres = [] """
+        self.livres=[]
+
+    def creerObjetSoup(self,url):
+        """ créé self.soup avec l'url en paramètre """
         self.urlCourante=url
         self.reponse=requests.get(self.urlCourante)
+        self.reponse.encoding = 'utf-8'
         self.soup=BeautifulSoup(self.reponse.text,features="html.parser")
-        print (self.reponse.text)
 
-    def categoryTitle(self): # OK
-        """ trouve et sauvegarde la catégorie et le titre du livre """
+    def recupereCategorieEtTitreLivre(self):
+        """ recupere et sauvegarde la catégorie et le titre du livre dans self.livre"""
         lis=self.soup.findAll('li')
-        # print (len(lis))
         for elem in lis: # boucle pour trouver le titre et la catégorie
             try: # pour trouver le titre
                 if (elem['class'][0] == 'active'):
@@ -53,28 +71,26 @@ class scraping():
                         self.livre['category']=cat.contents[0]
         # print (self.livre)
 
-    def image(self): # OK
-        """ trouve et sauvegarde l'url de l'image du livre """
+    def recupereUrlImageLivre(self):
+        """ recupere et sauvegarde l'url de l'image du livre dans self.livre """
         divs=self.soup.findAll('div')
         for elem in divs:
             try:
                 if (elem['class'] == ['item', 'active']):
                     image=elem
                     self.livre['image_url']=self.urlBase[:-10]+elem.find('img')['src'][9:]
-                    # print (self.livre['image_url'])
             except:
                 pass
 
-    def description(self): # OK
-        """ trouve et sauvegarde la description du livre """
+    def recupereDescriptionLivre(self):
+        """ recupere et sauvegarde la description du livre dans self.livre"""
         ps=self.soup.findAll('p')
         for p in ps:
             if (len(p.contents[0]) >= 50):
                 self.livre['product_description']='"'+p.contents[0]+'"'
-        # print ('description : ',self.livre['product_description'])
 
-    def autres(self): # OK
-        """ trouve et sauvegarde les autres caracteristiques du livre """
+    def recupereAutresParametresLivre(self):
+        """ recupere et sauvegarde les autres caracteristiques du livre dans self.livre """
         trs=self.soup.findAll('tr')
         for elem in trs:
             if (elem.find('th').contents[0]== 'UPC'):
@@ -88,8 +104,10 @@ class scraping():
             elif (elem.find('th').contents[0]== 'Number of reviews'):
                 self.livre['review_rating'] = elem.find('td').contents[0]
 
-    def creationCSV1livre(self): # PB encodage string
-        """ crée un CSV avec séparateur ';' """
+    def creeCSVunLivre(self):
+        """ crée un CSV avec séparateur ';' et sauvegrde les caracteristiques
+        présentes dans self.livre dans le fichier self.fichierCSV"""
+
         headers=''
         values=''
         for key,value in zip(self.livre.keys(),self.livre.values()):
@@ -103,22 +121,23 @@ class scraping():
             f.write('\n')
             f.write(values)
 
-    def unLivre(self,urlLivre,csv=False): # OK
-        """ execute toutes les methodes pour obtenir toutes les infos cherchees
-         si csv == True on génère un fichier CSV pour un seul livre"""
+    def scrapUnLivre(self,urlLivre,csv=False):
+        """ scrap les paramètres pour un livre donné
+         si csv == True génèration d'un fichier CSV pour ce livre uniquement"""
         self.creerObjetSoup(urlLivre)
+        self.initialiseLivre()
         self.livre['product_page_url']=urlLivre
-        self.categoryTitle()
-        self.image()
-        self.description()
-        self.autres()
+        self.recupereCategorieEtTitreLivre()
+        self.recupereUrlImageLivre()
+        self.recupereDescriptionLivre()
+        self.recupereAutresParametresLivre()
         # print ('unLivre : ',self.livre)
         if csv:
-            self.creationCSV1livre()
+            self.creeCSVunLivre()
 
-    def liens1pageCategorie(self): # OK
-        """ recupere tous les liens de livre pour une seule page de categorie """
-        ol=self.soup.find('ol') # recupere tous les liens de livres pour 1 page de categorie
+    def recupereUrlsUnePageCategorie(self):
+        """ recupere toutes les urls de livre pour une seule page d'une catégorie """
+        ol=self.soup.find('ol')
         divs=ol.findAll('div')
         self.categorie['urlsLivres'].append([])
         for elem in divs:
@@ -127,56 +146,57 @@ class scraping():
             except:
                 pass
 
-    def infosCategorie(self,urlCategorie): # OK
-        """ recupere toutes les infos necessaires à une catégorie """
+    def recupereInfosUneCategorie(self,urlCategorie):
+        """ recupere toutes les infos necessaires à une catégorie dans self.categorie"""
+
+        self.initialiseCategorie()
         self.creerObjetSoup(urlCategorie)
         strongs=self.soup.findAll('strong')
         self.categorie['nbLivres']=int(strongs[1].contents[0])
         self.categorie['nbPages']=int(self.categorie['nbLivres']/20)+1
-        # print ('nb Pages = ',self.categorie['nbPages'])
         if (self.categorie['nbPages'] > 1):
             urlUtilisee= urlCategorie[:-10]+'page-1.html'
-            # print ('urlCategorie = ',urlCategorie)
-            # print ('urlUtilisee = ',urlUtilisee)
             for elem in range(self.categorie['nbPages']): # urls de toutes les pages pour obtenir tous les livres
                 self.categorie['urlsPages'].append(urlUtilisee[:-6]+str(elem+1)+'.html')
-                # print ('test = ',self.categorie['urlsPages'][-1])
         else:
             self.categorie['urlsPages'].append(urlCategorie)
-        # print (self.categorie['urlsPages'])
 
         for elem in self.categorie['urlsPages']: # recupere toutes les urls des livres dans toutes les pages de la catégorie
             self.creerObjetSoup(elem)
-            self.liens1pageCategorie()
+            self.recupereUrlsUnePageCategorie()
         # print (self.categorie)
 
-    def uneCategorie(self,url,nomCSV='None'): # Test nom automatique CSV
-        """ execute toutes les methodes pour obtenir le CSV d'une catégorie """
-        self.infosCategorie(urlCategorie=url)
-        print('Il y a {} page(s) dans cette catégorie....'.format(len(self.categorie['urlsLivres'])))
+    def scrapUneCategorie(self,url,nomCSV='None'):
+        """ scrap une catégorie entière de livres et la sauvegarde
+         dans un CSV  """
+        self.recupereInfosUneCategorie(urlCategorie=url)
+        self.initialiseLivres()
+        print('Il y a {} page(s) dans cette catégorie'.format(len(self.categorie['urlsLivres'])))
+        self.barre=IncrementalBar('pages scrapées : ',max = len(self.categorie['urlsLivres']))
         for index,elem in enumerate(self.categorie['urlsLivres']): # recupere toutes les infos de livre de chaque url
-                print ('scraping de la page ',index)
                 for el in elem:
-                    # print (el)
                     self.initialiseLivre()
-                    self.unLivre(el)
-                    # print (self.livre)
+                    self.scrapUnLivre(el)
                     self.livres.append(self.livre)
+                self.barre.next()
+        self.barre.finish()
         if (nomCSV != 'None'):
             self.fichierCSV=nomCSV
         courant=os.path.abspath(os.path.curdir)
-        if (not os.path.isdir('dossierTest')):
-            os.mkdir('dossierTest')
-        os.chdir('dossierTest')
-        self.creationCSVLivresCategorie()
+        if (not os.path.isdir(self.dossierScrap)):
+            os.mkdir(self.dossierScrap)
+        os.chdir(self.dossierScrap)
+        self.creeCSVLivresUneCategorie()
         try:
             os.chdir(courant)
         except:
             pass
-        print ('Ctégorie terminée!')
+        print ('Catégorie sauvegardée dans {}'.format('./'+self.dossierScrap+'/'+self.fichierCSV))
 
-    def creationCSVLivresCategorie(self): # Pb encodage string
-        """ crée un CSV contenant tous les livres d'une meme categorie depuis self.livres"""
+    def creeCSVLivresUneCategorie(self):
+        """ crée un CSV contenant tous les livres d'une meme categorie
+        depuis self.livres"""
+
         headers = ''
         values = ''
         # print (len(self.livres),self.livres[0])
@@ -193,13 +213,16 @@ class scraping():
             f.write('\n')
             f.write(values)
 
-    def toutesCategories(self): # en test
-        """ crée un fichier CSV par catgorie contenant les détails de chaque livre """
+    def scrapSiteInternet(self): # en test
+        """ scrap tout le site internet et génère un csv par catégorie de livres
+         ces csv sont stockés dans un dossier"""
+
         self.infosToutesCategories()
-        for elem in self.urlsCategories:
-            print ('Scrapping de la catégorie {} en cours....'.format(elem['csv'][:-4]))
-            self.uneCategorie(url=elem['url'],nomCSV=elem['csv'])
-        print ('\nScrapping de toutes les catégories terminé\n')
+        print ('Il y a {} categories'.format(len(self.urlsCategories)))
+        for index,elem in enumerate(self.urlsCategories):
+            print ('Catégorie {}/{} : {}'.format(index+1,len(self.urlsCategories),elem['csv'][:-4]))
+            self.scrapUneCategorie(url=elem['url'],nomCSV=elem['csv'])
+        print ('\nSite Web scrapé intégralement\n')
 
     def trouverNomCategorie(self,url): # OK
         csv = url[::-1]
@@ -231,4 +254,4 @@ class scraping():
         # print (self.urlsCategories)
 
 if __name__ == '__main__':
-    scraping().toutesCategories()
+    scraping().scrapSiteInternet()
