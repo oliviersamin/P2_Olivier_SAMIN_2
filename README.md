@@ -13,14 +13,23 @@ Pour créer l'environnement virtuel nécessaire il suffit de:
 2. taper la ligne de commande suivante : **python3 -m venv env**
 3. taper la ligne de commande suivante : **source env/bin/activate**
 
-(env) devrait apparaitre au début des lignes de commande suivante   
+***(env)*** devrait apparaitre au début des lignes de commande suivante   
    
 ## Comment installer requirements.txt dans l'environnement virtuel?
-Une fois les étapes précédentes réalisées taper la ligne de commande ci-dessous:
+Une fois les étapes précédentes réalisées taper la ligne de commande ci-dessous:   
+
 **pip3 install -r requirements.txt**
 
 ## Comment exécuter le programme?
 
-1. une fois que l'environnement est activé et que le fichier requirements.txt a été installé exécuter la ligne de commande ci-dessous:
-python3 principal.py
-2. répondre aux questions posées pour scraper soit un livre seul, soit une catégorie unique soit tout le site
+1. une fois que l'environnement est activé et que le fichier requirements.txt a été installé exécuter la ligne de commande ci-dessous:   
+
+**python3 principal.py**   
+
+2. répondre aux questions posées pour scraper suivant les 3 possibilités:   
+
+- un livre seul,   
+
+- une catégorie unique  
+
+- tout le site

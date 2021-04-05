@@ -1,14 +1,12 @@
-
 """ Projet 2 de formation OpenClassRooms
  Mars 2021
  Olivier SAMIN
  """
 
-
-import requests
-from bs4 import BeautifulSoup
-import os
-from progress.bar import IncrementalBar
+import requests  # utilisé pour la récupération des données depuis le site
+from bs4 import BeautifulSoup # utilisé pour la récupération des données depuis le site
+import os # utilisé pour la création des dossiers et la navigation dans le système
+from progress.bar import IncrementalBar # utilisé pour l'information à l'utilisateur
 
 
 class scraping():
@@ -66,14 +64,12 @@ class scraping():
             try: # pour trouver le titre
                 if (elem['class'][0] == 'active'):
                     self.livre['title']=elem.contents[0]
-                    # print('title : ', self.livre['title'])
                     break
             except: # pour catégorie
                 if ('category' in elem.find('a')['href']):
                     cat=elem.find('a')
                     if (cat.contents[0] != 'Books'):
                         self.livre['category']=cat.contents[0]
-        # print (self.livre)
 
     def recupereUrlImageLivre(self):
         """ recupere et sauvegarde l'url de l'image du livre dans self.livre """
@@ -115,7 +111,6 @@ class scraping():
         headers=''
         values=''
         for key,value in zip(self.livre.keys(),self.livre.values()):
-            # print ('k = {}, v= {}'.format(key,value))
             headers+=key+';'
             values+=value+';'
         headers=headers[:-1]
@@ -135,11 +130,9 @@ class scraping():
         self.recupereUrlImageLivre()
         self.recupereDescriptionLivre()
         self.recupereAutresParametresLivre()
-        # print ('unLivre : ',self.livre)
         if csv:
             self.creeCSVunLivre()
         if image:
-            # nomImage=self.livre['title'].replace(' ','_')
             self.sauvegardeImageUnLivre(self.livre)
 
     def recupereUrlsUnePageCategorie(self):
@@ -171,7 +164,6 @@ class scraping():
         for elem in self.categorie['urlsPages']: # recupere toutes les urls des livres dans toutes les pages de la catégorie
             self.creerObjetSoup(elem)
             self.recupereUrlsUnePageCategorie()
-        # print (self.categorie)
 
     def scrapUneCategorie(self,url,nomCSV='None'):
         """ scrap une catégorie entière de livres et la sauvegarde
@@ -194,6 +186,7 @@ class scraping():
         self.barre.finish()
 
         #Sauvegarde CSVs et fichiers images
+        print ('enregistrement du fichier CSV et des fichiers images en cours...')
         if (nomCSV != 'None'):
             self.fichierCSV=nomCSV
         courant=os.path.abspath(os.path.curdir)
@@ -221,7 +214,6 @@ class scraping():
 
         headers = ''
         values = ''
-        # print (len(self.livres),self.livres[0])
         for index,elem in enumerate(self.livres):
                 for key, value in zip(elem.keys(), elem.values()):
                     if (index == 0):
@@ -260,7 +252,6 @@ class scraping():
 
         self.creerObjetSoup(self.urlBase)
         uls=self.soup.findAll('ul')
-        # print (len(uls))
         for ul in uls:
             try:
                 if (ul['class'] == ['nav', 'nav-list']):
@@ -323,7 +314,6 @@ class scraping():
                     exit()
                 else:
                     print('Votre choix doit être compris entre 1 et 3')
-                    # print (entree)
                     exit()
 
 if __name__ == '__main__':
