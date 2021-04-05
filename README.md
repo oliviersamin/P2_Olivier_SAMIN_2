@@ -1,4 +1,4 @@
-# P2_Olivier_SAMIN_2
+# P2_UtilisezLesBasesDePythonPourAnalyseDeMArche
 
 **Ce programme a été testé avec Python version 3.8.5 (default, Jan 27 2021, 15:41:15)**   
 
