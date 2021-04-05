@@ -3,6 +3,7 @@
  Olivier SAMIN
  """
 
+
 import requests  # utilisé pour la récupération des données depuis le site
 from bs4 import BeautifulSoup # utilisé pour la récupération des données depuis le site
 import os # utilisé pour la création des dossiers et la navigation dans le système
