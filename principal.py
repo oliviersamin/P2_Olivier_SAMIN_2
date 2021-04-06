@@ -76,6 +76,34 @@ class scraping():
             except:
                 pass
 
+    def recupererReviewRating(self):
+        """ récupère le nombre d'étoiles du livre et le stocke dans self.livre """
+        filtreStar='star-rating'
+        filtreProduit='product_main'
+        divs=self.soup.findAll('div')
+        for d in divs:
+            try:
+                if (filtreProduit in d['class']):
+                    ps = d.findAll('p')
+                    for p in ps:
+                        try:
+                            if (filtreStar in p['class']):
+                                self.livre['review_rating']=p['class'][1]
+                                break
+                        except:
+                            pass
+            except:
+                pass
+        # ps=self.soup.findAll('p')
+        # # print (ps[0].__dict__.keys())
+        # for p in ps:
+        #     try:
+        #         if (filtre in p['class']):
+        #             print (p['class'])
+        #         # print(p['class'],p['class'][0])
+        #     except:
+        #         pass
+
     def recupereDescriptionLivre(self):
         """ recupere et sauvegarde la description du livre dans self.livre"""
         ps=self.soup.findAll('p')
@@ -98,8 +126,6 @@ class scraping():
                 res=elem.find('td').contents[0]
                 res=res[res.find('(')+1:res.find(filtre)]
                 self.livre['number_available'] = res
-            elif (elem.find('th').contents[0]== 'Number of reviews'):
-                self.livre['review_rating'] = elem.find('td').contents[0]
 
     def creationDossiersSauvegarde(self):
         if (not os.path.isdir(cf.dossierSauvegarde)):
@@ -142,6 +168,7 @@ class scraping():
         self.recupereCategorieEtTitreLivre()
         self.recupereUrlImageLivre()
         self.recupereDescriptionLivre()
+        self.recupererReviewRating()
         self.recupereAutresParametresLivre()
         self.creationDossiersSauvegarde()
         if (unLivre):
