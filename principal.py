@@ -94,15 +94,6 @@ class scraping():
                             pass
             except:
                 pass
-        # ps=self.soup.findAll('p')
-        # # print (ps[0].__dict__.keys())
-        # for p in ps:
-        #     try:
-        #         if (filtre in p['class']):
-        #             print (p['class'])
-        #         # print(p['class'],p['class'][0])
-        #     except:
-        #         pass
 
     def recupereDescriptionLivre(self):
         """ recupere et sauvegarde la description du livre dans self.livre"""
