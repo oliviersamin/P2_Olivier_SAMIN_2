@@ -1,4 +1,5 @@
 """ Projet 2 de formation OpenClassRooms
+P2_UtilisezLesBasesDePythonPourAnalyseDeMarche
  Mars 2021
  Olivier SAMIN
  """
