@@ -7,7 +7,7 @@ import requests  # utilisé pour la récupération des données depuis le site
 from bs4 import BeautifulSoup # utilisé pour la récupération des données depuis le site
 import os # utilisé pour la création des dossiers et la navigation dans le système
 from progress.bar import IncrementalBar # utilisé pour l'information à l'utilisateur
-
+import config as cf
 
 class scraping():
     """ classe pour le scrapping du site BooksToScrap """
@@ -30,8 +30,6 @@ class scraping():
         self.urlCatalogue='http://books.toscrape.com/catalogue/'
         # url actuellement utilisée par le programme
         self.urlCourante=''
-        # stocke les variables self.livre pour toute une catégorie
-        self.livres=[]
         # stocke tous les paramètres à scrapper pour un livre
         self.livre={'product_page_url':'','upc':'','title':'','price_including_tax':'',
                     'price_excluding_tax':'','number_available':'','product_description':'',
@@ -45,10 +43,6 @@ class scraping():
     def initialiseCategorie(self):
         """ remet les valeurs par defaut pour self.categorie """
         self.categorie={'nbLivres':'','nbPages':'','urlsLivres':[],'urlsPages':[]}
-
-    def initialiseLivres(self):
-        """ remet la liste self.livres = [] """
-        self.livres=[]
 
     def creerObjetSoup(self,url):
         """ créé self.soup avec l'url en paramètre """
@@ -100,29 +94,48 @@ class scraping():
             elif (elem.find('th').contents[0]== 'Price (incl. tax)'):
                 self.livre['price_including_tax'] = elem.find('td').contents[0][1:]
             elif (elem.find('th').contents[0]== 'Availability'):
-                self.livre['number_available'] = elem.find('td').contents[0]
+                filtre=' available'
+                res=elem.find('td').contents[0]
+                res=res[res.find('(')+1:res.find(filtre)]
+                self.livre['number_available'] = res
             elif (elem.find('th').contents[0]== 'Number of reviews'):
                 self.livre['review_rating'] = elem.find('td').contents[0]
 
-    def creeCSVunLivre(self):
+    def creationDossiersSauvegarde(self):
+        if (not os.path.isdir(cf.dossierSauvegarde)):
+            os.mkdir(cf.dossierSauvegarde)
+        if (not os.path.isdir(cf.dossierImages)):
+            os.mkdir(cf.dossierImages)
+
+    def ecrireHeadersCSV(self,fichierCSV):
+        """ créé les headers du fichier CSV en parametre """
+        headers=''
+        for k in self.livre.keys():
+                headers+=k+';'
+        headers=headers[:-1]+'\n'
+
+        with open(fichierCSV, 'w') as f:
+                f.write(headers)
+
+    def ajouterUneLigneCSV(self,fichierCSV):
+        """ ajoute une ligne (qui correspond à un livre) à un fichier CSV déjà existant """
+        ligne=''
+        for v in self.livre.values():
+            ligne+=v+';'
+        ligne=ligne[:-1]+'\n'
+        with open(fichierCSV,'a') as f:
+            f.write(ligne)
+
+    def creeCSVunLivre(self,fichierCSV):
         """ crée un CSV avec séparateur ';' et sauvegrde les caracteristiques
         présentes dans self.livre dans le fichier self.fichierCSV"""
+        if (not os.path.exists(fichierCSV)):
+            self.ecrireHeadersCSV(fichierCSV)
+        self.ajouterUneLigneCSV(fichierCSV)
 
-        headers=''
-        values=''
-        for key,value in zip(self.livre.keys(),self.livre.values()):
-            headers+=key+';'
-            values+=value+';'
-        headers=headers[:-1]
-        values=values[:-1]
-        with open(self.fichierCSV,'w') as f:
-            f.write(headers)
-            f.write('\n')
-            f.write(values)
-
-    def scrapUnLivre(self,urlLivre,csv=False,image=False):
+    def scrapUnLivre(self,urlLivre,unLivre=False):
         """ scrap les paramètres pour un livre donné
-         si csv == True génèration d'un fichier CSV pour ce livre uniquement"""
+         si csv == True génération d'un fichier CSV pour ce livre uniquement"""
         self.creerObjetSoup(urlLivre)
         self.initialiseLivre()
         self.livre['product_page_url']=urlLivre
@@ -130,10 +143,13 @@ class scraping():
         self.recupereUrlImageLivre()
         self.recupereDescriptionLivre()
         self.recupereAutresParametresLivre()
-        if csv:
-            self.creeCSVunLivre()
-        if image:
-            self.sauvegardeImageUnLivre(self.livre)
+        self.creationDossiersSauvegarde()
+        if (unLivre):
+            self.fichierCSV=self.livre['title']
+        else:
+            self.fichierCSV = self.livre['category']
+        self.creeCSVunLivre(os.path.join(cf.dossierSauvegarde,self.fichierCSV))
+        self.sauvegardeImageUnLivre(self.livre)
 
     def recupereUrlsUnePageCategorie(self):
         """ recupere toutes les urls de livre pour une seule page d'une catégorie """
@@ -170,7 +186,6 @@ class scraping():
          dans un CSV  """
         # Prépare le scraping
         self.recupereInfosUneCategorie(urlCategorie=url)
-        self.initialiseLivres()
 
         # Optimise l'affichage pour l'utilisateur
         print('Il y a {} page(s) dans cette catégorie'.format(len(self.categorie['urlsLivres'])))
@@ -181,32 +196,10 @@ class scraping():
                 for el in elem:
                     self.initialiseLivre()
                     self.scrapUnLivre(el)
-                    self.livres.append(self.livre)
                 self.barre.next()
         self.barre.finish()
-
-        #Sauvegarde CSVs et fichiers images
-        print ('enregistrement du fichier CSV et des fichiers images en cours...')
-        if (nomCSV != 'None'):
-            self.fichierCSV=nomCSV
-        courant=os.path.abspath(os.path.curdir)
-        if (not os.path.isdir(self.dossierScrap)):
-            os.mkdir(self.dossierScrap)
-        os.chdir(self.dossierScrap)
-        self.creeCSVLivresUneCategorie()
-        if (not os.path.isdir(self.dossierImages)):
-            os.mkdir(self.dossierImages)
-        os.chdir(self.dossierImages)
-        if (nomCSV != 'None'):
-            if (not os.path.isdir(nomCSV[:-4])):
-                os.mkdir(nomCSV[:-4])
-            os.chdir(nomCSV[:-4])
-        self.sauvegardeImageLivresCategorie()
-        try:
-            os.chdir(courant)
-        except:
-            pass
-        print ('Catégorie sauvegardée dans {}'.format('./'+self.dossierScrap+'/'+self.fichierCSV))
+        print ('CSV de la catégorie sauvegardée dans {}'.format(cf.dossierSauvegarde))
+        print ('Images de la categorie sauvegardees dans {}'.format(cf.dossierImages))
 
     def creeCSVLivresUneCategorie(self):
         """ crée un CSV contenant tous les livres d'une meme categorie
@@ -229,7 +222,9 @@ class scraping():
 
     def scrapSiteInternet(self): # en test
         """ scrap tout le site internet et génère un csv par catégorie de livres
-         ces csv sont stockés dans un dossier"""
+         ces csv sont stockés dans un dossier
+
+         ATTENTION : cette méthode nécessite environ 15 minutes pour s'exécuter intégralement"""
 
         self.recupereInfosPourToutesCategories()
         print ('Il y a {} categories'.format(len(self.urlsCategories)))
@@ -270,17 +265,14 @@ class scraping():
     def sauvegardeImageUnLivre(self,livre):
         """ enregistre l'image du livre depuis son url dans self.livre
         dans le dossier self.dossierImages pour les images de livre"""
-
         reponse=requests.get(livre['image_url'])
         self.nomImage=livre['title'].replace('/','_')[:30]+'.png'
-        with open(self.nomImage,'wb') as f:
+        self.creationDossiersSauvegarde()
+        dossierImage=os.path.join(cf.dossierImages,self.livre['category'])
+        if (not os.path.isdir(dossierImage)):
+            os.mkdir(dossierImage)
+        with open(os.path.join(dossierImage,self.nomImage),'wb') as f:
             f.write(reponse.content)
-
-    def sauvegardeImageLivresCategorie(self):
-        """ sauvegarde l'image de chaque livre d'une catégorie depuis les urls
-        qui sont dans self.livres"""
-        for elem in self.livres:
-            self.sauvegardeImageUnLivre(elem)
 
     def choisirLaCibleDuScraping(self):
         """ Cette fonction sert à laisser le choix à l'utilisateur de ce qu'il veut scrapper
@@ -304,13 +296,11 @@ class scraping():
                     exit()
                 elif (int(entree)==1):
                     url=input("Entrer l'url à utiliser :\n")
-                    elem[1](urlLivre=url,csv=True,image=True)
-                    print ("le csv {} et l'image {} se trouvent dans le repertoire du programme".format(self.fichierCSV,self.nomImage))
+                    elem[1](urlLivre=url,unLivre=True)
                     exit()
                 elif (int(entree)==2):
                     url = input("Entrer l'url à utiliser :\n")
                     elem[1](url)
-                    print ('les images se trouvent dans {}'.format('./'+self.dossierScrap+'/'+self.dossierImages))
                     exit()
                 else:
                     print('Votre choix doit être compris entre 1 et 3')
