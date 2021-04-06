@@ -1,5 +1,14 @@
 # P2_UtilisezLesBasesDePythonPourAnalyseDeMarche
 
+## Contexte de ce programme
+Ce programme correspond au deuxième projet d'une série de 13 projets de formation pour obtenir le diplôme de développeur d'applications Python.   
+Pour plus d'informations visitez le site d'OpenClassRooms:   
+https://openclassrooms.com/fr/paths/322-developpeur-dapplication-python  
+
+**La mission de ce projet est de scrapper le site http://books.toscrape.com/**
+
+
+## Remarques préliminaires
 **Ce programme a été testé avec Python version 3.8.5 (default, Jan 27 2021, 15:41:15)**   
 
 ***Toutes les étapes suivantes sont indiquées pour la version 3.8.5 de Pyhton,***  
