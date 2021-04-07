@@ -27,8 +27,6 @@ class scraping():
         self.urlBaseImage='http://books.toscrape.com/'
         # url de base pour scrapper une catégorie
         self.urlCatalogue='http://books.toscrape.com/catalogue/'
-        # url actuellement utilisée par le programme
-        self.urlCourante=''
         # stocke tous les paramètres à scrapper pour un livre
         self.livre={'product_page_url':'','upc':'','title':'','price_including_tax':'',
                     'price_excluding_tax':'','number_available':'','product_description':'',
@@ -48,8 +46,7 @@ class scraping():
 
     def creerObjetSoup(self,url):
         """ créé self.soup avec l'url en paramètre """
-        self.urlCourante=url
-        self.reponse=requests.get(self.urlCourante)
+        self.reponse=requests.get(url)
         self.reponse.encoding = 'utf-8'
         self.soup=BeautifulSoup(self.reponse.text,features="html.parser")
 
@@ -102,7 +99,7 @@ class scraping():
                     for p in ps:
                         try:
                             if (filtreStar in p['class']):
-                                self.livre['review_rating']=p['class'][1]
+                                self.livre['review_rating']=p['class'][1]+ '/Five'
                                 break
                         except:
                             pass
@@ -123,7 +120,6 @@ class scraping():
         for p in ps:
             if (len(p.contents[0]) >= 50):
                 self.livre['product_description']=p.contents[0]
-                # self.livre['product_description']='"'+p.contents[0]+'"'
 
     def recupereAutresParametresLivre(self):
         """ recupere et sauvegarde les autres caracteristiques du livre dans self.livre
