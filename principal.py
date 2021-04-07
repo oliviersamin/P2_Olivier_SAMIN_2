@@ -54,7 +54,7 @@ class scraping():
         self.soup=BeautifulSoup(self.reponse.text,features="html.parser")
 
     def recupereCategorieEtTitreLivre(self):
-        """ recupere et sauvegarde la catégorie et le titre du livre dans self.livre
+        """ recupère et sauvegarde la catégorie et le titre du livre dans self.livre
         le titre est le content de la balise <li class ='active'>
         la catégorie est le content de la balise <li> qui contient <a href= urlPageCategorie>
         et dont le content est different de 'Books'"""
@@ -122,7 +122,8 @@ class scraping():
         ps=self.soup.findAll('p')
         for p in ps:
             if (len(p.contents[0]) >= 50):
-                self.livre['product_description']='"'+p.contents[0]+'"'
+                self.livre['product_description']=p.contents[0]
+                # self.livre['product_description']='"'+p.contents[0]+'"'
 
     def recupereAutresParametresLivre(self):
         """ recupere et sauvegarde les autres caracteristiques du livre dans self.livre
@@ -160,7 +161,7 @@ class scraping():
 
         headers=''
         for k in self.livre.keys():
-                headers+=k+';'
+                headers+=k+cf.delimiteurCSV
         headers=headers[:-1]+'\n'
 
         with open(fichierCSV, 'w') as f:
@@ -172,7 +173,7 @@ class scraping():
 
         ligne=''
         for v in self.livre.values():
-            ligne+=v+';'
+            ligne+= v+cf.delimiteurCSV
         ligne=ligne[:-1]+'\n'
         with open(fichierCSV,'a') as f:
             f.write(ligne)
@@ -361,7 +362,6 @@ class scraping():
         else:
             print('Votre choix doit être 1, 2 ou 3')
             exit()
-
 
 if __name__ == '__main__':
     scraping().choisirLaCibleDuScraping()
