@@ -342,31 +342,26 @@ class scraping():
          - une catégorie entière
          - tout le site (environ 15 minutes)
          """
-        choix=[(1,self.scrapUnLivre),(2,self.scrapUneCategorie),(3,self.scrapSiteInternet)]
+        print ('Le programme va scrapper le site http://books.toscrape.com/index.html\nPlusieurs choix sont possibles')
         print ('Choisir parmi les 3 options de scraping:\n1- scraper un seul livre\n'
                '2- scraper une seule catégorie\n3- scraper tout le site (environ 15 minutes)')
         entree=input('Taper 1, 2 ou 3 puis <Entree>: ')
-        try:
-            entree=int(entree)
-        except:
-            print("votre choix n'est pas un entier")
+
+        if (entree=='3'): # scraping de tout le site
+            self.scrapSiteInternet()
             exit()
-        for elem in choix:
-            if (int(entree) ==elem[0]):
-                if (int(entree)==3):
-                    elem[1]()
-                    exit()
-                elif (int(entree)==1):
-                    url=input("Entrer l'url à utiliser :\n")
-                    elem[1](urlLivre=url,unLivre=True)
-                    exit()
-                elif (int(entree)==2):
-                    url = input("Entrer l'url à utiliser :\n")
-                    elem[1](url)
-                    exit()
-                else:
-                    print('Votre choix doit être compris entre 1 et 3')
-                    exit()
+        elif (entree=='1'): # scraping d'un seul livre
+            url=input("Entrer l'url du livre à utiliser :\n")
+            self.scrapUnLivre(urlLivre=url,unLivre=True)
+            exit()
+        elif (entree=='2'): #scraping d'une seule catégorie
+            url = input("Entrer l'url de la catégorie à utiliser :\n")
+            self.scrapUneCategorie(url)
+            exit()
+        else:
+            print('Votre choix doit être 1, 2 ou 3')
+            exit()
+
 
 if __name__ == '__main__':
     scraping().choisirLaCibleDuScraping()
