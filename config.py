@@ -14,3 +14,6 @@ dossierImages=os.path.join(dossierSauvegarde,nomDosierImages)
 #dans un livre. Si le délimiteur est changé en ',' ou ';' il est très probable que la structure du CSV soit altérée
 #et que les colonnes ne correspondent plus aux en têtes.
 delimiteurCSV='|'
+
+#pour obtenir une segmentation correcte des colonnes il faut utiliser les "'"
+# pour identifier une chaîne de caractères et avoir un encodage en UTF-8

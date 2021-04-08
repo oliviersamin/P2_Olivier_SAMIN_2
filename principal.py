@@ -54,13 +54,15 @@ class scraping():
         """ recupère et sauvegarde la catégorie et le titre du livre dans self.livre
         le titre est le content de la balise <li class ='active'>
         la catégorie est le content de la balise <li> qui contient <a href= urlPageCategorie>
-        et dont le content est different de 'Books'"""
+        et dont le content est different de 'Books'
+        Je transforme les "'" en '"' pour éviter des problèmes de segmentation lors de la création du CSV
+        les chaînes de caractères sont identifiées avec des "'" """
 
         lis=self.soup.findAll('li')
         for elem in lis: # boucle pour trouver le titre et la catégorie
             try: # pour trouver le titre
                 if (elem['class'][0] == 'active'):
-                    self.livre['title']=elem.contents[0]
+                    self.livre['title']=elem.contents[0].replace("'",'"')
                     break
             except: # pour catégorie
                 if ('category' in elem.find('a')['href']):
@@ -119,7 +121,7 @@ class scraping():
         ps=self.soup.findAll('p')
         for p in ps:
             if (len(p.contents[0]) >= 50):
-                self.livre['product_description']=p.contents[0]
+                self.livre['product_description']=p.contents[0].replace("'",'"')
 
     def recupereAutresParametresLivre(self):
         """ recupere et sauvegarde les autres caracteristiques du livre dans self.livre
@@ -175,8 +177,8 @@ class scraping():
             f.write(ligne)
 
     def creeCSVunLivre(self,fichierCSV):
-        """ crée un CSV avec séparateur ';' et sauvegarde les caracteristiques
-        présentes dans self.livre dans fichierCSV"""
+        """ crée un CSV avec séparateur défini dans le fichier config et
+        sauvegarde les caracteristiques présentes dans self.livre dans fichierCSV"""
         if (not os.path.exists(fichierCSV)):
             self.ecrireHeadersCSV(fichierCSV)
         self.ajouterUneLigneCSV(fichierCSV)
@@ -198,9 +200,9 @@ class scraping():
         self.recupereAutresParametresLivre()
         self.creationDossiersSauvegarde()
         if (unLivre):
-            self.fichierCSV=self.livre['title']
+            self.fichierCSV=self.livre['title']+'.csv'
         else:
-            self.fichierCSV = self.livre['category']
+            self.fichierCSV = self.livre['category']+'.csv'
         self.creeCSVunLivre(os.path.join(cf.dossierSauvegarde,self.fichierCSV))
         self.sauvegardeImageUnLivre(self.livre)
 
